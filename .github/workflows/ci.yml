@@ -1,0 +1,61 @@
+name: Intégration continue
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  tests:
+    name: Tests unitaires
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Installer Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Installer les dépendances
+        run: pip install -r requirements-dev.txt
+
+      - name: Lancer les tests
+        run: pytest -q
+
+  conteneur:
+    name: Construction et test du conteneur
+    runs-on: ubuntu-latest
+    needs: tests
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Construire et démarrer l'API avec PostgreSQL
+        run: docker compose up -d --build
+
+      - name: Attendre que l'API soit prête
+        run: |
+          for i in $(seq 1 30); do
+            curl -fs http://localhost:8000/pret > /dev/null && exit 0
+            sleep 2
+          done
+          echo "L'API n'est pas devenue prête à temps"
+          exit 1
+
+      - name: Tester l'API dans le conteneur
+        run: |
+          curl -fsS -w "\n" http://localhost:8000/sante
+          curl -fsS -w "\n" -X POST http://localhost:8000/etudiants -H "Content-Type: application/json" -d '{"nom":"Diop","prenom":"Awa","email":"awa@ucad.sn","filiere":"RETEL"}'
+          curl -fsS -w "\n" http://localhost:8000/etudiants
+          curl -fsS http://localhost:8000/metriques | grep requetes_http_total
+
+      - name: Afficher les journaux en cas d'échec
+        if: failure()
+        run: docker compose logs
+
+      - name: Arrêter les conteneurs
+        if: always()
+        run: docker compose down -v

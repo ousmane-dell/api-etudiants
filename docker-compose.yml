@@ -1,0 +1,34 @@
+services:
+  bd:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: etudiant
+      POSTGRES_PASSWORD: etudiant
+      POSTGRES_DB: etudiants
+    volumes:
+      - donnees_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U etudiant -d etudiants"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    depends_on:
+      bd:
+        condition: service_healthy
+    restart: unless-stopped
+    mem_limit: 256m   # une fuite mémoire finit par un arrêt (OOM) puis un redémarrage
+    environment:
+      URL_BD: postgresql+psycopg2://etudiant:etudiant@${HOTE_BD:-bd}:5432/etudiants
+      VERSION_APP: ${VERSION_APP:-1.0.0}
+      PANNE_LATENCE_MS: ${PANNE_LATENCE_MS:-0}
+      PANNE_TAUX_ERREURS: ${PANNE_TAUX_ERREURS:-0}
+      PANNE_FUITE_MEMOIRE_KO: ${PANNE_FUITE_MEMOIRE_KO:-0}
+      PANNE_CPU_MS: ${PANNE_CPU_MS:-0}
+
+volumes:
+  donnees_pg:
