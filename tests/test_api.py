@@ -34,7 +34,7 @@ def test_sante_et_pret(client):
 
 def test_cycle_complet(client):
     cree = client.post("/etudiants", json=ETUDIANT)
-    assert cree.status_code == 200
+    assert cree.status_code == 201
     id_etudiant = cree.json()["id"]
 
     assert client.get(f"/etudiants/{id_etudiant}").json()["email"] == ETUDIANT["email"]
