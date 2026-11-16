@@ -1,0 +1,91 @@
+# API des étudiants : configuration, déploiement (2 réplicas) et service exposé sur localhost:8000.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-config
+  namespace: etudiants
+data:
+  HOTE_BD: bd
+  VERSION_APP: "1.0.0"
+  PANNE_LATENCE_MS: "0"
+  PANNE_TAUX_ERREURS: "0"
+  PANNE_FUITE_MEMOIRE_KO: "0"
+  PANNE_CPU_MS: "0"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: etudiants
+  labels:
+    app: api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      containers:
+        - name: api
+          image: ghcr.io/ousmane-dell/api-etudiants:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: api-config
+          env:
+            - name: MOT_DE_PASSE_BD
+              valueFrom:
+                secretKeyRef:
+                  name: bd-identifiants
+                  key: mot-de-passe
+            - name: HOTE_BD
+              valueFrom:
+                configMapKeyRef:
+                  name: api-config
+                  key: HOTE_BD
+            - name: URL_BD
+              value: postgresql+psycopg2://etudiant:$(MOT_DE_PASSE_BD)@$(HOTE_BD):5432/etudiants
+          livenessProbe:
+            httpGet:
+              path: /sante
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /pret
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+  namespace: etudiants
+spec:
+  type: NodePort
+  selector:
+    app: api
+  ports:
+    - port: 8000
+      targetPort: 8000
+      nodePort: 30080

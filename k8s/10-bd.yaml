@@ -1,0 +1,71 @@
+# Base de données PostgreSQL : identifiants, déploiement et service interne "bd".
+apiVersion: v1
+kind: Secret
+metadata:
+  name: bd-identifiants
+  namespace: etudiants
+type: Opaque
+stringData:
+  mot-de-passe: etudiant   # mot de passe de laboratoire, à ne jamais réutiliser en production
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bd
+  namespace: etudiants
+  labels:
+    app: bd
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bd
+  template:
+    metadata:
+      labels:
+        app: bd
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              value: etudiant
+            - name: POSTGRES_DB
+              value: etudiants
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: bd-identifiants
+                  key: mot-de-passe
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "etudiant", "-d", "etudiants"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+          volumeMounts:
+            - name: donnees
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: donnees
+          emptyDir: {}   # les données disparaissent si le pod est recréé : suffisant pour les expériences
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bd
+  namespace: etudiants
+spec:
+  selector:
+    app: bd
+  ports:
+    - port: 5432
+      targetPort: 5432

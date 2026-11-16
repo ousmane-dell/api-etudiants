@@ -1,0 +1,11 @@
+# Cluster Kubernetes local pour le mémoire (kind, dans Docker Desktop).
+# Le port 30080 du cluster est relié au port 8000 de ton PC : http://localhost:8000
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: memoire
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: 30080
+        hostPort: 8000
+        protocol: TCP
