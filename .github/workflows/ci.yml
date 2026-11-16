@@ -59,3 +59,36 @@ jobs:
       - name: Arrêter les conteneurs
         if: always()
         run: docker compose down -v
+
+  publication:
+    name: Publication de l'image Docker
+    runs-on: ubuntu-latest
+    needs: conteneur
+    # Uniquement quand le code arrive sur la branche main (pas sur une simple pull request)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Se connecter au registre GitHub (ghcr.io)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Calculer le nom de l'image (en minuscules)
+        id: image
+        run: echo "nom=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+      - name: Construire et publier l'image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.image.outputs.nom }}:${{ github.sha }}
+            ${{ steps.image.outputs.nom }}:latest
