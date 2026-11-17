@@ -1,0 +1,492 @@
+# Tableau de bord Grafana, chargé automatiquement grâce à l'étiquette grafana_dashboard.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tableau-etudiants
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  etudiants.json: |
+    {
+      "uid": "etudiants-supervision",
+      "title": "Étudiants - supervision du déploiement",
+      "tags": [
+        "memoire",
+        "etudiants"
+      ],
+      "timezone": "browser",
+      "schemaVersion": 39,
+      "version": 1,
+      "refresh": "10s",
+      "time": {
+        "from": "now-30m",
+        "to": "now"
+      },
+      "templating": {
+        "list": [
+          {
+            "name": "ds",
+            "label": "Source de données",
+            "type": "datasource",
+            "query": "prometheus",
+            "current": {},
+            "hide": 0
+          }
+        ]
+      },
+      "panels": [
+        {
+          "id": 1,
+          "type": "stat",
+          "title": "Pods de l'API prêts",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds}"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 0,
+            "w": 4,
+            "h": 4
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${ds}"
+              },
+              "expr": "sum(kube_pod_status_ready{namespace=\"etudiants\", condition=\"true\", pod=~\"api-.*\"})",
+              "legendFormat": "",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "auto"
+          }
+        },
+        {
+          "id": 2,
+          "type": "stat",
+          "title": "Version déployée",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds}"
+          },
+          "gridPos": {
+            "x": 4,
+            "y": 0,
+            "w": 4,
+            "h": 4
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${ds}"
+              },
+              "expr": "count by (version) (info_application)",
+              "legendFormat": "{{version}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "none"
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "auto"
+          }
+        },
+        {
+          "id": 3,
+          "type": "stat",
+          "title": "Redémarrages (total)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds}"
+          },
+          "gridPos": {
+            "x": 8,
+            "y": 0,
+            "w": 4,
+            "h": 4
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${ds}"
+              },
+              "expr": "sum(kube_pod_container_status_restarts_total{namespace=\"etudiants\", container=\"api\"})",
+              "legendFormat": "",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "auto"
+          }
+        },
+        {
+          "id": 4,
+          "type": "stat",
+          "title": "Erreurs de base de données (1 min)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds}"
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 0,
+            "w": 4,
+            "h": 4
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${ds}"
+              },
+              "expr": "sum(increase(erreurs_bd_total[1m]))",
+              "legendFormat": "",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "auto"
+          }
+        },
+        {
+          "id": 5,
+          "type": "timeseries",
+          "title": "Requêtes par seconde",
+          "description": "Débit total reçu par l'API",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds}"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 4,
+            "w": 8,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${ds}"
+              },
+              "expr": "sum(rate(requetes_http_total[1m]))",
+              "legendFormat": "requêtes/s",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "reqps",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 10
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          }
+        },
+        {
+          "id": 6,
+          "type": "timeseries",
+          "title": "Taux d'erreurs 5xx (%)",
+          "description": "Part des réponses en erreur serveur",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds}"
+          },
+          "gridPos": {
+            "x": 8,
+            "y": 4,
+            "w": 8,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${ds}"
+              },
+              "expr": "100 * sum(rate(requetes_http_total{statut=~\"5..\"}[1m])) / clamp_min(sum(rate(requetes_http_total[1m])), 0.001)",
+              "legendFormat": "erreurs 5xx",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 10
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          }
+        },
+        {
+          "id": 7,
+          "type": "timeseries",
+          "title": "Latence p95 (secondes)",
+          "description": "95 % des requêtes sont plus rapides que cette valeur",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds}"
+          },
+          "gridPos": {
+            "x": 16,
+            "y": 4,
+            "w": 8,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${ds}"
+              },
+              "expr": "histogram_quantile(0.95, sum by (le) (rate(duree_requetes_http_secondes_bucket[1m])))",
+              "legendFormat": "p95",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 10
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          }
+        },
+        {
+          "id": 8,
+          "type": "timeseries",
+          "title": "Mémoire de l'API par pod",
+          "description": "",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds}"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 12,
+            "w": 8,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${ds}"
+              },
+              "expr": "container_memory_working_set_bytes{namespace=\"etudiants\", container=\"api\"}",
+              "legendFormat": "{{pod}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 10
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          }
+        },
+        {
+          "id": 9,
+          "type": "timeseries",
+          "title": "CPU de l'API par pod (cœurs)",
+          "description": "",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds}"
+          },
+          "gridPos": {
+            "x": 8,
+            "y": 12,
+            "w": 8,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${ds}"
+              },
+              "expr": "rate(container_cpu_usage_seconds_total{namespace=\"etudiants\", container=\"api\"}[1m])",
+              "legendFormat": "{{pod}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 10
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          }
+        },
+        {
+          "id": 10,
+          "type": "timeseries",
+          "title": "Redémarrages par pod",
+          "description": "",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds}"
+          },
+          "gridPos": {
+            "x": 16,
+            "y": 12,
+            "w": 8,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${ds}"
+              },
+              "expr": "sum by (pod) (kube_pod_container_status_restarts_total{namespace=\"etudiants\", container=\"api\"})",
+              "legendFormat": "{{pod}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 10
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          }
+        }
+      ]
+    }
