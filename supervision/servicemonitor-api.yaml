@@ -1,0 +1,19 @@
+# Dit à Prometheus de lire /metriques sur chaque pod de l'API toutes les 10 secondes.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: api
+  namespace: etudiants
+  labels:
+    app: api
+spec:
+  selector:
+    matchLabels:
+      app: api
+  namespaceSelector:
+    matchNames:
+      - etudiants
+  endpoints:
+    - port: http
+      path: /metriques
+      interval: 10s

@@ -81,11 +81,14 @@ kind: Service
 metadata:
   name: api
   namespace: etudiants
+  labels:
+    app: api
 spec:
   type: NodePort
   selector:
     app: api
   ports:
-    - port: 8000
+    - name: http
+      port: 8000
       targetPort: 8000
       nodePort: 30080

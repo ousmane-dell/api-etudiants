@@ -1,0 +1,42 @@
+# Supervision allégée pour un PC portable : on garde seulement ce qui sert au mémoire.
+# Prometheus (collecte), Grafana (graphiques), kube-state-metrics (redémarrages, pods prêts)
+# et les métriques des conteneurs (CPU, mémoire) fournies par le kubelet.
+
+alertmanager:
+  enabled: false
+
+nodeExporter:
+  enabled: false
+
+# Composants du plan de contrôle de kind : inutiles ici (cibles toujours rouges dans kind)
+kubeEtcd:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeControllerManager:
+  enabled: false
+kubeProxy:
+  enabled: false
+
+prometheus:
+  prometheusSpec:
+    # Prendre en compte tous les ServiceMonitor, pas seulement ceux de ce chart
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    scrapeInterval: 15s
+    retention: 7d
+    resources:
+      requests:
+        cpu: 100m
+        memory: 400Mi
+      limits:
+        memory: 1Gi
+
+grafana:
+  adminPassword: memoire   # mot de passe de laboratoire
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 384Mi
